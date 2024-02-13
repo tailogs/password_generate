@@ -1,4 +1,4 @@
-# GeneratePassword
+# Генератор паролей
 
 ![image](https://github.com/tailogs/GeneratePassword/assets/69743960/35c9ee8a-ade0-47b8-88ee-d56fafc16a36)
 
