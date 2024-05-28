@@ -1,6 +1,6 @@
 # PasswordGenerator
 
-![image](https://github.com/tailogs/GeneratePassword/assets/69743960/087e8404-046f-41c3-a09d-8b7c7f5a6bbf)
+![image](https://github.com/tailogs/PasswordGenerator/assets/69743960/087e8404-046f-41c3-a09d-8b7c7f5a6bbf)
 
 *Рисунок 1. Интерфейс приложения Password Generator*
 
