@@ -2,17 +2,10 @@
 #include <windows.h>
 #include <stdio.h>
 #include <time.h>
-#include "resources.h"
+#include <shellapi.h> // Для системного трея
+#include "resource.h"
 
-// Константы для идентификации элементов управления
-#define ID_GENERATE_BTN 1
-#define ID_COPY_BTN 2
-#define ID_LOWERCASE_CHK 3
-#define ID_UPPERCASE_CHK 4
-#define ID_DIGITS_CHK 5
-#define ID_SYMBOLS_CHK 6
-#define ID_LENGTH_EDIT 7
-#define ID_PASSWORD_TEXT 8
+#define VERSION "3.1.0"
 
 // Символы для генерации пароля
 const char LOWERCASE_CHARS[] = "abcdefghijklmnopqrstuvwxyz";
@@ -25,12 +18,20 @@ BOOL InitInstance(HINSTANCE, int);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 void GeneratePassword(HWND);
 void CopyPassword(HWND);
+void ShowAboutDialog(HWND);
 
 // Глобальные переменные
 HWND hLengthEdit, hLowercaseChk, hUppercaseChk, hDigitsChk, hSymbolsChk, hPasswordText, hCopyBtn;
+HFONT hFont;
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
-{
+NOTIFYICONDATA nid; // Для системного трея
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+    (void)hPrevInstance; // Явное игнорирование неиспользуемого параметра
+    (void)lpCmdLine; // Явное игнорирование неиспользуемого параметра
+    HWND myConsole = GetConsoleWindow(); //window handle
+    ShowWindow(myConsole, 0); //handle window
+
     // Инициализируем генератор случайных чисел
     srand((unsigned int)time(NULL));
 
@@ -42,46 +43,65 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     wcex.hInstance = hInstance;
     wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
     wcex.hbrBackground = CreateSolidBrush(RGB(30, 30, 30)); // Темно-темный цвет фона
-    wcex.lpszClassName = "PasswordGenerator";
-    wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(ICON1));  // Загружаем иконку из ресурсов
+    wcex.lpszClassName = "PasswordClass";
+    wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1));  // Загружаем иконку из ресурсов
     RegisterClassEx(&wcex);
 
     // Создаем главное окно
-    HWND hWnd = CreateWindow("PasswordGenerator", "Генератор паролей",
-        WS_OVERLAPPEDWINDOW & ~WS_MAXIMIZEBOX, CW_USEDEFAULT, CW_USEDEFAULT,
-        405, 255, NULL, NULL, hInstance, NULL);
+    HWND hwnd = CreateWindow("PasswordClass", "Password Generator",
+        ((WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX) | WS_VISIBLE), CW_USEDEFAULT, CW_USEDEFAULT,
+        395, 265, NULL, NULL, hInstance, NULL);
+        
 
-    if (!hWnd)
+    if (!hwnd)
         return FALSE;
 
+    HMENU hMenu = LoadMenu(hInstance, MAKEINTRESOURCE(IDR_MYMENU));
+        SetMenu(hwnd, hMenu);
+
     // Создаем элементы управления
-    CreateWindow("BUTTON", "Сгенерировать", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
-        10, 10, 140, 30, hWnd, (HMENU)ID_GENERATE_BTN, hInstance, NULL);
+    CreateWindow("BUTTON", "Generate", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+        10, 10, 140, 30, hwnd, (HMENU)ID_GENERATE_BTN, hInstance, NULL);
 
-    hLowercaseChk = CreateWindow("BUTTON", "Строчные буквы", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        10, 50, 140, 30, hWnd, (HMENU)ID_LOWERCASE_CHK, hInstance, NULL);
+    hLowercaseChk = CreateWindow("BUTTON", "Lower case", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+        10, 50, 140, 30, hwnd, (HMENU)ID_LOWERCASE_CHK, hInstance, NULL);
 
-    hUppercaseChk = CreateWindow("BUTTON", "Прописные буквы", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        10, 80, 140, 30, hWnd, (HMENU)ID_UPPERCASE_CHK, hInstance, NULL);
+    hUppercaseChk = CreateWindow("BUTTON", "Upper letters", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+        10, 80, 140, 30, hwnd, (HMENU)ID_UPPERCASE_CHK, hInstance, NULL);
 
-    hDigitsChk = CreateWindow("BUTTON", "Цифры", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        10, 110, 140, 30, hWnd, (HMENU)ID_DIGITS_CHK, hInstance, NULL);
+    hDigitsChk = CreateWindow("BUTTON", "Numbers", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+        10, 110, 140, 30, hwnd, (HMENU)ID_DIGITS_CHK, hInstance, NULL);
 
-    hSymbolsChk = CreateWindow("BUTTON", "Символы", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
-        10, 140, 140, 30, hWnd, (HMENU)ID_SYMBOLS_CHK, hInstance, NULL);
+    hSymbolsChk = CreateWindow("BUTTON", "Symbols", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
+        10, 140, 140, 30, hwnd, (HMENU)ID_SYMBOLS_CHK, hInstance, NULL);
 
     hLengthEdit = CreateWindow("EDIT", "8", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_NUMBER,
-        160, 50, 40, 25, hWnd, (HMENU)ID_LENGTH_EDIT, hInstance, NULL);
+        160, 50, 40, 25, hwnd, (HMENU)ID_LENGTH_EDIT, hInstance, NULL);
 
-    CreateWindow("STATIC", "Длина", WS_CHILD | WS_VISIBLE,
-        160, 80, 47, 25, hWnd, NULL, hInstance, NULL);
+    CreateWindow("STATIC", "Length", WS_CHILD | WS_VISIBLE,
+        160, 80, 47, 25, hwnd, NULL, hInstance, NULL);
 
     hPasswordText = CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL | ES_READONLY,
-        10, 180, 275, 25, hWnd, (HMENU)ID_PASSWORD_TEXT, hInstance, NULL);
+        10, 180, 275, 25, hwnd, (HMENU)ID_PASSWORD_TEXT, hInstance, NULL);
 
-    hCopyBtn = CreateWindow("BUTTON", "Скопировать", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        290, 180, 90, 25, hWnd, (HMENU)ID_COPY_BTN, hInstance, NULL);
-    ShowWindow(hCopyBtn, SW_HIDE); // Начально скрываем кнопку "Скопировать"
+    hCopyBtn = CreateWindow("BUTTON", "Copy", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+        290, 180, 90, 25, hwnd, (HMENU)ID_COPY_BTN, hInstance, NULL);
+
+    // Создаем современный шрифт
+    hFont = CreateFont(16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+        OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE, "Segoe UI");
+
+    // Применяем шрифт ко всем элементам управления
+    SendMessage(GetDlgItem(hwnd, ID_GENERATE_BTN), WM_SETFONT, (WPARAM)hFont, TRUE);
+    SendMessage(hLowercaseChk, WM_SETFONT, (WPARAM)hFont, TRUE);
+    SendMessage(hUppercaseChk, WM_SETFONT, (WPARAM)hFont, TRUE);
+    SendMessage(hDigitsChk, WM_SETFONT, (WPARAM)hFont, TRUE);
+    SendMessage(hSymbolsChk, WM_SETFONT, (WPARAM)hFont, TRUE);
+    SendMessage(hLengthEdit, WM_SETFONT, (WPARAM)hFont, TRUE);
+    SendMessage(hPasswordText, WM_SETFONT, (WPARAM)hFont, TRUE);
+    SendMessage(hCopyBtn, WM_SETFONT, (WPARAM)hFont, TRUE);
+    SendMessage(GetDlgItem(hwnd, -1), WM_SETFONT, (WPARAM)hFont, TRUE); // Для статического текста "Длина"
 
     // Устанавливаем начальные значения элементов управления
     SendMessage(hLowercaseChk, BM_SETCHECK, BST_CHECKED, 0);
@@ -89,13 +109,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     SendMessage(hDigitsChk, BM_SETCHECK, BST_CHECKED, 0);
 
     ShowWindow(hCopyBtn, SW_SHOW);
-    ShowWindow(hWnd, nCmdShow);
-    UpdateWindow(hWnd);
+    ShowWindow(hwnd, nCmdShow);
+    UpdateWindow(hwnd);
+
+    // Инициализация иконки трея
+    ZeroMemory(&nid, sizeof(nid));
+    nid.cbSize = sizeof(nid);
+    nid.hWnd = hwnd;
+    nid.uID = 1;
+    nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+    nid.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1));
+    nid.uCallbackMessage = WM_USER + 1;
+    strcpy(nid.szTip, "Password Generator");
+    Shell_NotifyIcon(NIM_ADD, &nid);
 
     // Цикл обработки сообщений
     MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0))
-    {
+    while (GetMessage(&msg, NULL, 0, 0)) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
@@ -103,34 +133,65 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     return (int)msg.wParam;
 }
 
+
 // Обработчик сообщений окна
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    switch (message)
-    {
-    case WM_COMMAND:
-        switch (LOWORD(wParam))
-        {
-        case ID_GENERATE_BTN:
-            GeneratePassword(hWnd);
+LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+    switch (message) {
+        case WM_COMMAND:
+            switch (LOWORD(wParam)) {
+                case ID_GENERATE_BTN:
+                    GeneratePassword(hwnd);
+                    break;
+                case ID_COPY_BTN:
+                    CopyPassword(hwnd);
+                    break;
+                case ID_FILE_EXIT:
+                    Shell_NotifyIcon(NIM_DELETE, &nid); // Удаление иконки трея
+                    PostQuitMessage(0); // Завершение приложения
+                    break;
+                case ID_TRAY_SHOW:
+                    ShowWindow(hwnd, SW_RESTORE); // Восстановление окна
+                    SetForegroundWindow(hwnd); // Активировать окно
+                    break;
+                case ID_HELP_ABOUT:
+                    ShowAboutDialog(hwnd);
+                    break;
+            }
             break;
-        case ID_COPY_BTN:
-            CopyPassword(hWnd);
+        case WM_USER + 1: // Сообщение из трея
+            if (lParam == WM_RBUTTONUP) {
+                HMENU hMenu = CreatePopupMenu();
+                AppendMenu(hMenu, MF_STRING, ID_TRAY_SHOW, "Show");
+                AppendMenu(hMenu, MF_STRING, ID_FILE_EXIT, "Exit");
+
+                POINT pt;
+                GetCursorPos(&pt);
+                SetForegroundWindow(hwnd);
+                TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, pt.x, pt.y, 0, hwnd, NULL);
+                DestroyMenu(hMenu);
+            } else if (lParam == WM_LBUTTONDBLCLK) {
+                // Двойной клик ЛКМ по иконке
+                ShowWindow(hwnd, SW_RESTORE); // Восстановление окна
+                SetForegroundWindow(hwnd); // Активировать окно
+            }
             break;
-        }
-        break;
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        break;
-    default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
+        case WM_CLOSE:
+            // Скрытие окна вместо его закрытия
+            ShowWindow(hwnd, SW_HIDE);
+            return 0;
+        case WM_DESTROY:
+            Shell_NotifyIcon(NIM_DELETE, &nid); // Удаление иконки трея
+            PostQuitMessage(0);
+            break;
+        default:
+            return DefWindowProc(hwnd, message, wParam, lParam);
     }
+
     return 0;
 }
 
 // Функция генерации пароля
-void GeneratePassword(HWND hWnd)
-{
+void GeneratePassword(HWND hwnd) {
     // Получаем настройки из элементов управления
     BOOL useLowercase = SendMessage(hLowercaseChk, BM_GETCHECK, 0, 0) == BST_CHECKED;
     BOOL useUppercase = SendMessage(hUppercaseChk, BM_GETCHECK, 0, 0) == BST_CHECKED;
@@ -138,9 +199,8 @@ void GeneratePassword(HWND hWnd)
     BOOL useSymbols = SendMessage(hSymbolsChk, BM_GETCHECK, 0, 0) == BST_CHECKED;
 
     // Проверяем, что хотя бы один тип символов выбран
-    if (!useLowercase && !useUppercase && !useDigits && !useSymbols)
-    {
-        MessageBox(hWnd, "Выберите хотя бы один тип символов для генерации пароля.", "Ошибка", MB_OK | MB_ICONERROR);
+    if (!useLowercase && !useUppercase && !useDigits && !useSymbols) {
+        MessageBox(hwnd, "Выберите хотя бы один тип символов для генерации пароля.", "Ошибка", MB_OK | MB_ICONERROR);
         return;
     }
 
@@ -150,9 +210,8 @@ void GeneratePassword(HWND hWnd)
     int length = atoi(lengthStr);
 
     // Проверяем, что длина пароля находится в допустимом диапазоне
-    if (length < 4 || length > 32)
-    {
-        MessageBox(hWnd, "Длина пароля должна быть от 4 до 32 символов.", "Ошибка", MB_OK | MB_ICONERROR);
+    if (length < 4 || length > 32) {
+        MessageBox(hwnd, "Длина пароля должна быть от 4 до 32 символов.", "Ошибка", MB_OK | MB_ICONERROR);
         return;
     }
 
@@ -160,34 +219,29 @@ void GeneratePassword(HWND hWnd)
     char charset[128] = { 0 };
     int charsetLen = 0;
 
-    if (useLowercase)
-    {
+    if (useLowercase) {
         strcat(charset, LOWERCASE_CHARS);
         charsetLen += sizeof(LOWERCASE_CHARS) - 1;
     }
 
-    if (useUppercase)
-    {
+    if (useUppercase) {
         strcat(charset, UPPERCASE_CHARS);
         charsetLen += sizeof(UPPERCASE_CHARS) - 1;
     }
 
-    if (useDigits)
-    {
+    if (useDigits) {
         strcat(charset, DIGIT_CHARS);
         charsetLen += sizeof(DIGIT_CHARS) - 1;
     }
 
-    if (useSymbols)
-    {
+    if (useSymbols) {
         strcat(charset, SYMBOL_CHARS);
         charsetLen += sizeof(SYMBOL_CHARS) - 1;
     }
 
     // Генерируем пароль
     char password[33] = { 0 };
-    for (int i = 0; i < length; i++)
-    {
+    for (int i = 0; i < length; i++) {
         int randomIndex = rand() % charsetLen;
         password[i] = charset[randomIndex];
     }
@@ -197,26 +251,22 @@ void GeneratePassword(HWND hWnd)
 }
 
 // Функция копирования пароля в буфер обмена
-void CopyPassword(HWND hWnd)
-{
+void CopyPassword(HWND hwnd) {
     // Получаем текст из текстового поля пароля
     char password[33];
     GetWindowText(hPasswordText, password, sizeof(password));
 
     // Открываем буфер обмена
-    if (OpenClipboard(hWnd))
-    {
+    if (OpenClipboard(hwnd)) {
         // Очищаем текущее содержимое буфера обмена
         EmptyClipboard();
 
         // Выделяем память под строку пароля
         HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, strlen(password) + 1);
-        if (hMem != NULL)
-        {
+        if (hMem != NULL) {
             // Получаем указатель на выделенную память
             char *memPtr = (char *)GlobalLock(hMem);
-            if (memPtr != NULL)
-            {
+            if (memPtr != NULL)  {
                 // Копируем пароль в выделенную память
                 strcpy(memPtr, password);
 
@@ -231,4 +281,14 @@ void CopyPassword(HWND hWnd)
         // Закрываем буфер обмена
         CloseClipboard();
     }
+}
+
+void ShowAboutDialog(HWND hwnd) {
+    char message[256];
+
+    // Форматирование строки с помощью sprintf
+    sprintf(message, "Password Generator %s\nA simple password generator.\nDeveloper - Taillogs.", VERSION);
+
+    // Показ диалогового окна с объединенной строкой
+    MessageBox(hwnd, message, "About Password Generator", MB_OK | MB_ICONINFORMATION);
 }

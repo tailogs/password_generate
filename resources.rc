@@ -1,5 +1,0 @@
-//resources.rc
-
-#include "resources.h"
-
-ICON1 ICON "icon.ico"

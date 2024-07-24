@@ -1,33 +1,18 @@
-# Простой Makefile для компиляции и запуска PasswordGenerator
-
-# Компилятор
 CC = gcc
-# Флаги компиляции
-CFLAGS = -Wall -mwindows
-# Библиотеки для линковки
-LIBS = -luser32
+CFLAGS = -Wall -Wextra
+OBJ = main.o resource.o
+OUT = password_generator.exe
 
-# Файлы проекта
-SRC = main.c
-RES = resources.res
-EXE = PasswordGenerator.exe
+all: $(OUT)
 
-# Цель по умолчанию
-all: $(EXE)
+$(OUT): $(OBJ)
+	$(CC) -o $@ $^ -lgdi32
 
-# Цель для компиляции приложения
-$(EXE): $(SRC) $(RES)
-	$(CC) $(CFLAGS) $(SRC) $(RES) -o $(EXE) $(LIBS)
+main.o: main.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
-# Цель для создания файла ресурсов
-$(RES): resources.rc resources.h
-	windres resources.rc -O coff -o $(RES)
+resource.o: resource.rc
+	windres $< -o $@
 
-# Цель для запуска приложения
-run: $(EXE)
-	.\$(EXE)
-	del $(EXE) $(RES)
-
-# Цель для удаления скомпилированных файлов
 clean:
-	del $(EXE) $(RES)
+	del $(OBJ) $(OUT)
