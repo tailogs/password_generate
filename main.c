@@ -26,6 +26,10 @@ HFONT hFont;
 
 NOTIFYICONDATA nid; // Для системного трея
 
+// Глобальные переменные
+BOOL isMouseOverGenerateBtn = FALSE;
+BOOL isMouseOverCopyBtn = FALSE;
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     (void)hPrevInstance; // Явное игнорирование неиспользуемого параметра
     (void)lpCmdLine; // Явное игнорирование неиспользуемого параметра
@@ -133,7 +137,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     return (int)msg.wParam;
 }
 
-
 // Обработчик сообщений окна
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
@@ -169,48 +172,79 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 SetForegroundWindow(hwnd);
                 TrackPopupMenu(hMenu, TPM_RIGHTBUTTON, pt.x, pt.y, 0, hwnd, NULL);
                 DestroyMenu(hMenu);
+                break; // Добавьте break здесь
             } else if (lParam == WM_LBUTTONDBLCLK) {
                 // Двойной клик ЛКМ по иконке
                 ShowWindow(hwnd, SW_RESTORE); // Восстановление окна
                 SetForegroundWindow(hwnd); // Активировать окно
+                break; // Добавьте break здесь
             }
             break;
         case WM_DRAWITEM: {
-                LPDRAWITEMSTRUCT dis = (LPDRAWITEMSTRUCT)lParam;
-                if (dis->CtlType == ODT_BUTTON) {
-                    HBRUSH hBrush = CreateSolidBrush(RGB(50, 50, 50));
-                    FillRect(dis->hDC, &dis->rcItem, hBrush);
-                    DeleteObject(hBrush);
-                    
-                    SetTextColor(dis->hDC, RGB(255, 255, 255));
-                    SetBkMode(dis->hDC, TRANSPARENT);
-                    
-                    if (dis->hwndItem == hGenerateBtn) {
-                        DrawText(dis->hDC, "Generate", -1, &dis->rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-                    } else if (dis->hwndItem == hCopyBtn) {
-                        DrawText(dis->hDC, "Copy", -1, &dis->rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                LPDRAWITEMSTRUCT pDIS = (LPDRAWITEMSTRUCT)lParam;
+                if (pDIS->CtlID == ID_GENERATE_BTN || pDIS->CtlID == ID_COPY_BTN) {
+                    // Отрисовка кнопок с BS_OWNERDRAW
+                    HBRUSH hBrush;
+                    BOOL isMouseOver = (pDIS->CtlID == ID_GENERATE_BTN) ? isMouseOverGenerateBtn : isMouseOverCopyBtn;
+
+                    if (pDIS->itemState & ODS_SELECTED) {
+                        // Кнопка нажата
+                        hBrush = CreateSolidBrush(RGB(200, 200, 200)); // Серый цвет для фона при нажатии
+                    } else if (isMouseOver) {
+                        // Курсор мыши над кнопкой
+                        hBrush = CreateSolidBrush(RGB(200, 200, 200)); // Цвет для фона при наведении
+                    } else {
+                        // Кнопка не нажата и курсор не над кнопкой
+                        hBrush = CreateSolidBrush(RGB(75, 75, 75)); // Цвет для фона
                     }
+                    FillRect(pDIS->hDC, &pDIS->rcItem, hBrush);
+                    DeleteObject(hBrush);
+
+                    // Рисуем текст кнопки
+                    SetBkMode(pDIS->hDC, TRANSPARENT);
+                    SetTextColor(pDIS->hDC, RGB(0, 0, 0)); // Черный цвет для текста
+
+                    // Получаем текст кнопки
+                    char text[256];
+                    GetWindowText(pDIS->hwndItem, text, sizeof(text));
+
+                    // Отрисовываем текст
+                    DrawText(pDIS->hDC, text, -1, &pDIS->rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+                    return TRUE;
                 }
             }
             break;
-        case WM_CTLCOLORSTATIC: {
+        case WM_CTLCOLORSTATIC:
+        case WM_CTLCOLOREDIT: {
                 HDC hdc = (HDC)wParam;
                 SetBkColor(hdc, RGB(30, 30, 30));
                 SetTextColor(hdc, RGB(255, 255, 255));
                 return (INT_PTR)GetStockObject(NULL_BRUSH);
             }
             break;
-        case WM_CTLCOLORLISTBOX: {
-                HDC hdc = (HDC)wParam;
-                SetTextColor(hdc, RGB(255, 255, 255));
-                return (INT_PTR)GetStockObject(NULL_BRUSH);
-	        }
-	        break;
-	    case WM_CTLCOLOREDIT: {
-                HDC hdc = (HDC)wParam;
-                SetBkColor(hdc, RGB(30, 30, 30)); //  
-                SetTextColor(hdc, RGB(255, 255, 255)); //  
-                return (INT_PTR)GetStockObject(NULL_BRUSH);
+        case WM_MOUSEMOVE: {
+                POINT pt;
+                pt.x = LOWORD(lParam);
+                pt.y = HIWORD(lParam);
+
+                RECT rcGenerateBtn, rcCopyBtn;
+                GetWindowRect(hGenerateBtn, &rcGenerateBtn);
+                GetWindowRect(hCopyBtn, &rcCopyBtn);
+                ScreenToClient(hwnd, &pt);
+
+                BOOL isMouseOverGenerate = PtInRect(&rcGenerateBtn, pt);
+                BOOL isMouseOverCopy = PtInRect(&rcCopyBtn, pt);
+
+                if (isMouseOverGenerate != isMouseOverGenerateBtn) {
+                    isMouseOverGenerateBtn = isMouseOverGenerate;
+                    InvalidateRect(hGenerateBtn, NULL, TRUE);
+                }
+
+                if (isMouseOverCopy != isMouseOverCopyBtn) {
+                    isMouseOverCopyBtn = isMouseOverCopy;
+                    InvalidateRect(hCopyBtn, NULL, TRUE);
+                }
             }
             break;
         case WM_CLOSE:
