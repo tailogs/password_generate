@@ -3,9 +3,10 @@
 #include <stdio.h>
 #include <time.h>
 #include <shellapi.h> // Для системного трея
+#include <stdbool.h>
 #include "resource.h"
 
-#define VERSION "3.2"
+#define VERSION "3.2.1"
 
 // Символы для генерации пароля
 const char LOWERCASE_CHARS[] = "abcdefghijklmnopqrstuvwxyz";
@@ -186,23 +187,31 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                     // Отрисовка кнопок с BS_OWNERDRAW
                     HBRUSH hBrush;
                     BOOL isMouseOver = (pDIS->CtlID == ID_GENERATE_BTN) ? isMouseOverGenerateBtn : isMouseOverCopyBtn;
+                    bool btnTextColor = false;
 
                     if (pDIS->itemState & ODS_SELECTED) {
                         // Кнопка нажата
                         hBrush = CreateSolidBrush(RGB(200, 200, 200)); // Серый цвет для фона при нажатии
+                        btnTextColor = true;
                     } else if (isMouseOver) {
                         // Курсор мыши над кнопкой
                         hBrush = CreateSolidBrush(RGB(200, 200, 200)); // Цвет для фона при наведении
+                        btnTextColor = false;
                     } else {
                         // Кнопка не нажата и курсор не над кнопкой
                         hBrush = CreateSolidBrush(RGB(75, 75, 75)); // Цвет для фона
+                        btnTextColor = false;
                     }
                     FillRect(pDIS->hDC, &pDIS->rcItem, hBrush);
                     DeleteObject(hBrush);
 
                     // Рисуем текст кнопки
                     SetBkMode(pDIS->hDC, TRANSPARENT);
-                    SetTextColor(pDIS->hDC, RGB(0, 0, 0)); // Черный цвет для текста
+                    if (btnTextColor) {
+                        SetTextColor(pDIS->hDC, RGB(0, 0, 0)); // Черный цвет для текста
+                    } else {
+                        SetTextColor(pDIS->hDC, RGB(255, 255, 255)); // Черный цвет для текста
+                    }
 
                     // Получаем текст кнопки
                     char text[256];
