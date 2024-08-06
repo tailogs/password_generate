@@ -5,7 +5,7 @@
 #include <shellapi.h> // Для системного трея
 #include "resource.h"
 
-#define VERSION "3.1.0"
+#define VERSION "3.2"
 
 // Символы для генерации пароля
 const char LOWERCASE_CHARS[] = "abcdefghijklmnopqrstuvwxyz";
@@ -21,7 +21,7 @@ void CopyPassword(HWND);
 void ShowAboutDialog(HWND);
 
 // Глобальные переменные
-HWND hLengthEdit, hLowercaseChk, hUppercaseChk, hDigitsChk, hSymbolsChk, hPasswordText, hCopyBtn;
+HWND hLengthEdit, hGenerateBtn, hLowercaseChk, hUppercaseChk, hDigitsChk, hSymbolsChk, hPasswordText, hCopyBtn;
 HFONT hFont;
 
 NOTIFYICONDATA nid; // Для системного трея
@@ -60,7 +60,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         SetMenu(hwnd, hMenu);
 
     // Создаем элементы управления
-    CreateWindow("BUTTON", "Generate", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON,
+    hGenerateBtn = CreateWindow("BUTTON", "Generate", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON | BS_OWNERDRAW,
         10, 10, 140, 30, hwnd, (HMENU)ID_GENERATE_BTN, hInstance, NULL);
 
     hLowercaseChk = CreateWindow("BUTTON", "Lower case", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX,
@@ -84,7 +84,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     hPasswordText = CreateWindow("EDIT", "", WS_CHILD | WS_VISIBLE | WS_BORDER | ES_AUTOHSCROLL | ES_READONLY,
         10, 180, 275, 25, hwnd, (HMENU)ID_PASSWORD_TEXT, hInstance, NULL);
 
-    hCopyBtn = CreateWindow("BUTTON", "Copy", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+    hCopyBtn = CreateWindow("BUTTON", "Copy", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_OWNERDRAW,
         290, 180, 90, 25, hwnd, (HMENU)ID_COPY_BTN, hInstance, NULL);
 
     // Создаем современный шрифт
@@ -173,6 +173,44 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 // Двойной клик ЛКМ по иконке
                 ShowWindow(hwnd, SW_RESTORE); // Восстановление окна
                 SetForegroundWindow(hwnd); // Активировать окно
+            }
+            break;
+        case WM_DRAWITEM: {
+                LPDRAWITEMSTRUCT dis = (LPDRAWITEMSTRUCT)lParam;
+                if (dis->CtlType == ODT_BUTTON) {
+                    HBRUSH hBrush = CreateSolidBrush(RGB(50, 50, 50));
+                    FillRect(dis->hDC, &dis->rcItem, hBrush);
+                    DeleteObject(hBrush);
+                    
+                    SetTextColor(dis->hDC, RGB(255, 255, 255));
+                    SetBkMode(dis->hDC, TRANSPARENT);
+                    
+                    if (dis->hwndItem == hGenerateBtn) {
+                        DrawText(dis->hDC, "Generate", -1, &dis->rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                    } else if (dis->hwndItem == hCopyBtn) {
+                        DrawText(dis->hDC, "Copy", -1, &dis->rcItem, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+                    }
+                }
+            }
+            break;
+        case WM_CTLCOLORSTATIC: {
+                HDC hdc = (HDC)wParam;
+                SetBkColor(hdc, RGB(30, 30, 30));
+                SetTextColor(hdc, RGB(255, 255, 255));
+                return (INT_PTR)GetStockObject(NULL_BRUSH);
+            }
+            break;
+        case WM_CTLCOLORLISTBOX: {
+                HDC hdc = (HDC)wParam;
+                SetTextColor(hdc, RGB(255, 255, 255));
+                return (INT_PTR)GetStockObject(NULL_BRUSH);
+	        }
+	        break;
+	    case WM_CTLCOLOREDIT: {
+                HDC hdc = (HDC)wParam;
+                SetBkColor(hdc, RGB(30, 30, 30)); //  
+                SetTextColor(hdc, RGB(255, 255, 255)); //  
+                return (INT_PTR)GetStockObject(NULL_BRUSH);
             }
             break;
         case WM_CLOSE:

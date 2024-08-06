@@ -1,7 +1,8 @@
 # Password Generator
 
 ## Изображение
-![image](https://github.com/user-attachments/assets/0c72958e-0d16-4d06-9283-d9e007e8c9e8) <br> Рисунок 1. Интерфейс программы
+
+![image](https://github.com/user-attachments/assets/714a097e-d5de-45ea-9aef-72622604e955) <br> Рисунок 1. Интерфейс программы
 
 ## Описание
 
@@ -67,6 +68,7 @@ make clean
 - **v2.0**: Переписано с Java на C#
 - **v3.0**: Переписано с C# на C и WinAPI
 - **v3.1.0**: Изменен язык интерфейса с русского на английский. Добавлено меню. Сделана работа с треем. Исправлены несколько мелких ошибок и предупреждений. Улучшен README.md
+- **v3.2**: Улучшен UI интерфейса и оформлена в темных тонах
 
 ## Лицензия
 
@@ -74,4 +76,4 @@ make clean
 
 ---
 
-Разработано [Taillogs](https://github.com/tailogs).
+Разработано [Tailogs](https://github.com/tailogs).
